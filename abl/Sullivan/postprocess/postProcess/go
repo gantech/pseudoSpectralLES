@@ -1,0 +1,147 @@
+#!/bin/sh
+#
+# special compilation script for running analysis code
+# with different dimensions. fixed for 64 bit pgi.
+#
+# first run cpp on the pars, suppress line messages
+#
+case $1 in 
+    AA3) 
+    cpp -P -DAA3  par_prof.F par_prof.f
+    ;;
+    RF0) 
+    cpp -P -DRF0  par_prof.F par_prof.f
+    ;;
+    RG0) 
+    cpp -P -DRG0  par_prof.F par_prof.f
+    ;;
+    RF1) 
+    cpp -P -DRF1  par_prof.F par_prof.f
+    ;;
+    RG1) 
+    cpp -P -DRG1  par_prof.F par_prof.f
+    ;;
+    RF2) 
+    cpp -P -DRF2  par_prof.F par_prof.f
+    ;;
+    RF3) 
+    cpp -P -DRF3  par_prof.F par_prof.f
+    ;;
+    SF3) 
+    cpp -P -DSF3  par_prof.F par_prof.f
+    ;;
+    BA1) 
+    cpp -P -DBA1  par_prof.F par_prof.f
+    ;;
+    RF4) 
+    cpp -P -DRF4  par_prof.F par_prof.f
+    ;;
+    RF5) 
+    cpp -P -DRF5  par_prof.F par_prof.f
+    ;;
+    RF6) 
+    cpp -P -DRF6  par_prof.F par_prof.f
+    ;;
+    RF7) 
+    cpp -P -DRF7  par_prof.F par_prof.f
+    ;;
+    RG3) 
+    cpp -P -DRG3  par_prof.F par_prof.f
+    ;;
+    RG4) 
+    cpp -P -DRG4  par_prof.F par_prof.f
+    ;;
+    RG5) 
+    cpp -P -DRG5  par_prof.F par_prof.f
+    ;;
+    RH1) 
+    cpp -P -DRH1  par_prof.F par_prof.f
+    ;;
+    RH2) 
+    cpp -P -DRH2  par_prof.F par_prof.f
+    ;;
+    ABL) 
+    cpp -P -DABL  par_prof.F par_prof.f
+    ;;
+esac
+#
+#
+#xlf90 -qfixed -qarch=auto -qstrict -qrealsize=4 -qnoescape -O3 \
+#        -Wl,-stack_size,10000000,-stack_addr,0xc0000000 rdprof_2dmpi.f \
+#       -L$NETCDFLIB -I$NETCDFINC -lnetcdf  \
+#       $HOME/tools/mac/fft.o
+
+#pgf90 -byteswapio -Mbackslash -O2 \
+#      -L/usr/lib/gcc/i686-apple-darwin9/4.0.1 -lm -lstdc++ -lgcc_eh \
+#      -I /Applications/Tec360_2008/util/tecio /Applications/Tec360_2008/lib/tecio.a \
+#       $HOME/tools/mac/fft.o \
+#      rdprof_2dmpi.f
+
+pgf90 -O2 -lm -lstdc++ $HOME/les_abl/Sullivan/fft/fft_64.o  rdprof_2dmpi.f
+
+#chmod +x a.out
+
+#a.out > junk
+#./a.out
+#
+# copy the file for tecplot
+#
+case $1 in 
+    AA3) 
+    cp aa3.xy ./stats/
+    ;;
+    RF0) 
+    cp rf0.xy ./stats/
+    ;;
+    RG0) 
+    cp rg0.xy ./stats/
+    ;;
+    RF1) 
+    cp rf1.xy ./stats/
+    ;;
+    RG1) 
+    cp rg1.xy ./stats/
+    ;;
+    RF2) 
+    cp rf2.xy ./stats/
+    ;;
+    RF3) 
+    cp rf3.xy ./stats/
+    ;;
+    SF3) 
+    cp sf3.xy ./stats/
+    ;;
+    BA1) 
+    cp ba1.xy ./stats/
+    ;;
+    RF4) 
+    cp rf4.xy ./stats/
+    ;;
+    RF5) 
+    cp rf5.xy ./stats/
+    ;;
+    RF6) 
+    cp rf6.xy ./stats/
+    ;;
+    RF7) 
+    cp rf7.xy ./stats/
+    ;;
+    RG3) 
+    cp rg3.xy ./stats/
+    ;;
+    RG4) 
+    cp rg4.xy ./stats/
+    ;;
+    RG5) 
+    cp rg5.xy ./stats/
+    ;;
+    RH1) 
+    cp rh1.xy ./stats/
+    ;;
+    RH2) 
+    cp rh2.xy ./stats/
+    ;;
+    ABL) 
+    cp abl.xy ./stats/
+    ;;
+esac

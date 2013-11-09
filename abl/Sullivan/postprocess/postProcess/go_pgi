@@ -1,0 +1,4 @@
+pgf90 -byteswapio -Mbackslash -O2 \
+      -lm -lstdc++ -lgcc_eh \
+       $HOME/les_abl/Sullivan/fft/fft_64.o \
+       $1

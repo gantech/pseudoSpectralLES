@@ -1,11 +1,17 @@
 #!/bin/bash
 #PBS -A TG-ATM110007
-#PBS -l size=12,walltime=24:00:00
+#PBS -l size=24,walltime=24:00:00
 #PBS -N FAST
 
 module swap PrgEnv-pgi PrgEnv-intel 
 
 cd $PBS_O_WORKDIR
 
-./FASTfilesWrite
-
+# Use aprun to start a shell script which runs 15 copies of the
+# of the same executable on two compute nodes
+# Note: all aprun options specified below are required
+#  -n 2   # run on two nodes
+#  -d 12  # allows the script to access all the cores on a node
+#  -cc none  # allows each serial process to run on its own core
+#  -a xt  # required by aprun to run a script instead of a program
+aprun -n 2 -d 12 -cc none -a xt ./run15Rows

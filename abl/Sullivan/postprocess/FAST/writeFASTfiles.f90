@@ -67,6 +67,7 @@ program	writeFASTFiles
   integer(kind=1) :: ci
   integer :: wtx, wty !Counter for the wind turbine number
   integer :: nWtx, nWty !Number of wind turbines in each direction
+  integer :: wtxStart, wtxEnd !Starting and ending turbine row in x direction
   integer(kind=4) :: wtExtentY, wtExtentZ  
   !wtExtentY - Number of the points in the horizontal direction across 1 wind turbine.
   !wtExtentZ - Number of the points in the vertical direction across 1 wind turbine.
@@ -78,6 +79,9 @@ program	writeFASTFiles
   double precision :: uVelNew, vVelNew, wVelNew !The interpolated value of velocity at the reqd. point in the FAST field
   double precision :: uVelOld, vVelOld, wVelOld !The interpolated value of velocity at the reqd. point in the FAST field
   double precision :: tmp !Temporary variable
+
+  character *20  buffer  !Buffer to read in command line arguments
+
   nnx = 768
   nny = 768
   nnz = 256
@@ -109,8 +113,16 @@ program	writeFASTFiles
   nTFAST = 7500  
   nt = 7500
   nTLES = 7000
+
+  call getarg(1,buffer)
+  read(buffer,*) wtxStart
+
+  call getarg(2,buffer)
+  read(buffer,*) wtxEnd
+  write(*,*) 'Writing turbines from row', wtxStart, ' to ', wtxEnd
+  
 !  nWtx = 15
-  nWtx = 1
+!  nWtx = 1
   nWty = 14
 !  nWty = 1
   dt = 0.2
@@ -128,7 +140,7 @@ program	writeFASTFiles
   wtExtentY = 25
   wtExtentZ = 25
 
-  do wtx=1,nWtx
+  do wtx=wtxStart, wtxEnd
     do wty=1,nWty
        write(writeFileBTSname,"(I3.3)") (wtx-1)*nWty + wty
        writeFileBTSname = trim(writeFileBTSname)//'.bts'
@@ -183,7 +195,7 @@ program	writeFASTFiles
  !Write the starting time step data first. No interpolation required
  do k = 1,wtExtentZ
     read(fileXY,rec=k) pA_xyNew
-    do wtx=1,nWtx
+    do wtx=wtxStart, wtxEnd
        i = (wtx-1)*54+1
        xLocCur = (i-1)*dx
        do wty=1,nWty
@@ -226,7 +238,7 @@ program	writeFASTFiles
     do k=1,wtExtentZ
        read(fileXY,rec=iTLES*50+k) pA_xyNew
        read(fileXY,rec=(iTLES-1)*50+k) pA_xyOld
-       do wtx=1,nWtx
+       do wtx=wtxStart, wtxEnd
           i = (wtx-1)*54+1
           xLocCur = (i-1)*dx
           do wty=1,nWty

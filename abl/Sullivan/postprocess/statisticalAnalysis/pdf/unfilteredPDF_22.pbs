@@ -1,0 +1,11 @@
+#!/bin/bash
+#PBS -A TG-ATM110007
+#PBS -l size=12,walltime=24:00:00
+#PBS -N unfilteredPDF
+
+module swap PrgEnv-pgi PrgEnv-intel 
+
+cd $PBS_O_WORKDIR
+
+./unfilteredPDFCalc 22
+

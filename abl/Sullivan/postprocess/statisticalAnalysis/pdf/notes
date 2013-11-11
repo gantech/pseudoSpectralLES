@@ -1,0 +1,2 @@
+1. PDF's will be calculated at u,v levels.. i.e z=4,12,20,28m and so on.
+2. W velocities will be interpolated to u,v, levels using linear interpolation. The vertical velocity at the wall is taken to be zero.

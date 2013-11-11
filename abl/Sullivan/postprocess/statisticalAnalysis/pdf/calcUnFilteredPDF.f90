@@ -42,7 +42,6 @@ program calcUnfilteredPDF
   real :: xl, yl         ! x, y domain sizes
   real :: dx, dy         ! x, y grid lengths
   integer :: nnx, nny, nnz      ! x, y grid dimensions
-  real(kind=8), dimension(:), allocatable :: xArr, yArr !Array of x and y locations on the grid
   integer :: nvar=5 !The number of variables stored in a plane at every time step
   integer :: nxy !nnx*nny
   integer :: nt !Number of time steps
@@ -52,9 +51,7 @@ program calcUnfilteredPDF
   real(kind=4), dimension(:,:), allocatable :: u,v,w !Plane Arrays 
   real(kind=4), dimension(:,:), allocatable :: uRot,vRot,wRot !Plane Arrays 
   real(kind=4), dimension(:), allocatable :: uWrite,vWrite,wWrite !Plane Arrays in the format to be written into vtr files
-  real, allocatable, dimension(:) :: umean, vmean, wmean
-  real, allocatable, dimension(:) :: umeanProfile, vmeanProfile, wmeanProfile !Profile of mean velocities from postprocessing of his.mp files
-  real, allocatable, dimension(:) :: uvarProfile, vvarProfile, wvarProfile !Profile of velocity variances from postprocessing of his.mp files
+  real :: umean, vmean, wmean
   integer :: zLevel !The z level at which the data is to be visualized.
   integer :: sizeOfReal=1 !The size of real in words on this system
   integer :: fileXY, fileDT  !The index of the files used to open the "xy.data" and the "dt" files
@@ -82,12 +79,6 @@ program calcUnfilteredPDF
   nny = 768
   dx = xl/nnx
   dy = yl/nny
-  allocate(xArr(nnx))
-  allocate(yArr(nny))
-  do i=1,nnx
-     xArr(i) = dble(i-1)*dx
-     yArr(i) = dble(i-1)*dy
-  end do
   nnz = 50
   sizeOfReal = 1
   fileXY = 95
@@ -136,7 +127,6 @@ program calcUnfilteredPDF
      else
         w = 0.5 * ( w + 0.0)        
      end if
-     read(fileXY,rec=(fileCounter-1)*nnz + zLevel) pA_xy
 
      umean = sum(u)/real(nxy)
      vmean = sum(v)/real(nxy)
@@ -168,31 +158,41 @@ program calcUnfilteredPDF
      end do
 
   end do
-  close(fileXY)
 
+  write(*,*) 'Finished time loop'
+  
   updf = updf/(real(nt*nxy))
   wpdf = wpdf/(real(nt*nxy))
+
+  write(*,*) 'Finished computing pdfs'
 
   write(writeFileName,'(I0.2)') zLevel
   call system("mkdir -p "//"zLevel"//trim(adjustl(writeFileName)))
 
-  open(unit=23,file="zLevel"//trim(adjustl(writeFileName))//"/uUnfilteredPDF")
-  write(23,"(A)",advance="no")'#  Bin , u unfiltered PDF'
-  write(23,*) 
-  do i=0,nbinsU
-     write(23,"(F,F)",advance="no") umin+0.5*binSizeU + i*binSizeU, updf(i)/binSizeU
-     write(23,*) 
-  end do
-  close(23)
-  
-  open(unit=23,file="zLevel"//trim(adjustl(writeFileName))//"/wUnfilteredPDF")
-  write(23,"(A)",advance="no")'#  Bin , w unfiltered PDF'
-  write(23,*) 
-  do i=0,nbinsW
-     write(23,"(F,F)",advance="no") wmin+0.5*binSizeW + i*binSizeW, wpdf(i)/binSizeW
-     write(23,*) 
-  end do
-  close(23)
+  write(*,*) 'Finished making directory'
 
+  open(unit=88,file="zLevel"//trim(adjustl(writeFileName))//"/uUnfilteredPDF")
+  write(*,*) 'Finished opening file uPDF'
+  write(88,"(A)",advance="no")'#  Bin , u unfiltered PDF'
+  write(*,*) 'Finished writing one line to uPDF'
+  write(88,*) 
+  write(*,*) 'Finished writing second line to uPDF'
+  do i=0,nbinsU
+     write(88,"(F,F)",advance="no") umin+0.5*binSizeU + i*binSizeU, updf(i)/binSizeU
+     write(88,*) 
+  end do
+  close(88)
+  
+  open(unit=88,file="zLevel"//trim(adjustl(writeFileName))//"/wUnfilteredPDF")
+  write(88,"(A)",advance="no")'#  Bin , w unfiltered PDF'
+  write(88,*) 
+  do i=0,nbinsW
+     write(88,"(F,F)",advance="no") wmin+0.5*binSizeW + i*binSizeW, wpdf(i)/binSizeW
+     write(88,*) 
+  end do
+  close(88)
+
+
+  close(fileXY)
   
 end program calcUnfilteredPDF

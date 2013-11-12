@@ -52,13 +52,13 @@ program calcFilteredPDF
   real(kind=4), dimension(:,:,:), allocatable :: pA_xy !Plane Arrays 
   real(kind=4), dimension(:,:), allocatable :: u,v,w !Plane Arrays 
   real(kind=4), dimension(:,:), allocatable :: uRot,vRot,wRot !Plane Arrays 
-  real(kind=4), dimension(:), allocatable :: uWrite,vWrite,wWrite !Plane Arrays in the format to be written into vtr files
-  real, allocatable, dimension(:) :: umean, vmean, wmean
-  real, allocatable, dimension(:) :: umeanProfile, vmeanProfile, wmeanProfile !Profile of mean velocities from postprocessing of his.mp files
-  real, allocatable, dimension(:) :: uvarProfile, vvarProfile, wvarProfile !Profile of velocity variances from postprocessing of his.mp files
+  real :: umean, vmean, wmean
+  real :: uMeanFromProfile, vMeanFromProfile !The mean velocity from the profile.
   integer :: zLevel !The z level at which the data is to be visualized.
   integer :: sizeOfReal=1 !The size of real in words on this system
-  integer :: fileXY, fileDT  !The index of the files used to open the "xy.data" and the "dt" files
+  integer :: fileXY  !The index of the files used to open the "xy.data" file
+  integer :: fileUmeanProfile !The index of the file used to open the "uxym" file
+  character :: dtFileReadLine
 
   !Variables to interpolate to yawed co-ordinate system
   real(kind=4) :: yawAngle
@@ -103,16 +103,10 @@ program calcFilteredPDF
   nny = 768
   dx = xl/nnx
   dy = yl/nny
-  allocate(xArr(nnx))
-  allocate(yArr(nny))
-  do i=1,nnx
-     xArr(i) = dble(i-1)*dx
-     yArr(i) = dble(i-1)*dy
-  end do
   nnz = 50
   sizeOfReal = 1
   fileXY = 95
-  fileDT = 91
+  fileUMeanProfile = 83
   
   nxy = nnx*nny
   nt = 10
@@ -125,6 +119,14 @@ program calcFilteredPDF
   allocate(uRot(nnx,nny))
   allocate(vRot(nnx,nny))
   allocate(wRot(nnx,nny))
+
+  !Read in umean from the profile
+  open(fileUMeanProfile,file="uxym")
+  read(fileUMeanProfile,'(A1)') dtFileReadLine !Dummy don't bother
+  do iz = 1, zLevel
+     read(fileUMeanProfile,*) uMeanFromProfile, vMeanFromProfile, wmean
+  end do
+  close(fileUMeanProfile)
 
   write(*,*) 'Usage: ExecutableName CutOffWaveNumber u_ud_cdf u_dd_cdf w_ud_cdf w_dd_cdf'
   call getarg(1,buffer)
@@ -173,7 +175,7 @@ program calcFilteredPDF
      call dfftw_plan_dft_c2r_2d(plan_inv, nnx, nny, fft_out, fft_in, FFTW_ESTIMATE)
      write(*,*) 'Finished initializing and allocating FFTW variables. Beginning first time loop'  
   end if
-     
+
   open(unit=fileXY, file="../../viz.abl.094999_102000.xy.data", form="unformatted", access="direct", recl=nvar*nnx*nny*sizeOfReal)
   do fileCounter=1,nt
      write(*,*) 'Reading record number ', (fileCounter-1)*nnz + zLevel
@@ -271,7 +273,6 @@ program calcFilteredPDF
 
 
   end do
-  close(fileXY)
 
   updf = updf/(real(nt*nxy))
   wpdf = wpdf/(real(nt*nxy))
@@ -279,14 +280,14 @@ program calcFilteredPDF
   write(writeFileName,'(I0.2)') zLevel
   call system("mkdir "//"zLevel"//trim(adjustl(writeFileName)))
 
-  open(unit=23,file="zLevel"//trim(adjustl(writeFileName))//"/uFilteredPDF")
-  write(23,"(A)")'#  Bin , u filtered PDF'
-  write(23,*) 
+  open(unit=88,file="zLevel"//trim(adjustl(writeFileName))//"/uFilteredPDF")
+  write(88,"(A)")'#  Bin , u filtered PDF'
+  write(88,*) 
   do i=0,nbinsU
-     write(23,"(F,F)") umin+0.5*binSizeU + i*binSizeU, updf(i)/binSizeU
-     write(23,*) 
+     write(88,"(F,F)") umin+0.5*binSizeU + i*binSizeU, updf(i)/binSizeU
+     write(88,*) 
   end do
-  close(23)
+  close(88)
 
   do i=0,nbinsU
      !     write(*,*) wmin+0.5*binSize + i*binSize, ' ', i,  ' ', wpdf(i), ' ', sum(wpdf(:i)) 
@@ -298,15 +299,165 @@ program calcFilteredPDF
      end if
   end do
 
-  open(unit=23,file="zLevel"//trim(adjustl(writeFileName))//"/wFilteredPDF")
-  write(23,"(A)")'#  Bin , w filtered PDF'
-  write(23,*) 
+  open(unit=88,file="zLevel"//trim(adjustl(writeFileName))//"/wFilteredPDF")
+  write(88,"(A)")'#  Bin , w filtered PDF'
+  write(88,*) 
   do i=0,nbinsW
-     write(23,"(F,F)") wmin+0.5*binSizeW + i*binSizeW, wpdf(i)/binSizeW
-     write(23,*) 
+     write(88,"(F,F)") wmin+0.5*binSizeW + i*binSizeW, wpdf(i)/binSizeW
+     write(88,*) 
   end do
-  close(23)
+  close(88)
+  
+  write(*,*) 'Finished computing and writing PDFs. Beginning second time loop'  
+  
+  !Initializing all conditional means to zero
+  umeanCondLS = 0.0
+  umeanCondHS = 0.0
+  vmeanCondLS = 0.0
+  vmeanCondHS = 0.0
+  wmeanCondLS = 0.0
+  wmeanCondHS = 0.0
 
+  umeanCondUD = 0.0
+  umeanCondDD = 0.0
+  vmeanCondUD = 0.0
+  vmeanCondDD = 0.0
+  wmeanCondUD = 0.0
+  wmeanCondDD = 0.0
+  
+  do fileCounter=1,nt
+     write(*,*) 'Reading record number ', (fileCounter-1)*nnz + zLevel
+     read(fileXY,rec=(fileCounter-1)*nnz + zLevel) pA_xy
+     u = pA_xy(1,:,:) + 7.5
+     v = pA_xy(2,:,:)
+     w = pA_xy(3,:,:) !Temporary
+     if(zLevel /= 0) then
+        read(fileXY,rec=(fileCounter-1)*nnz + zLevel-1) pA_xy
+        w = 0.5 * ( w + pA_xy(3,:,:))
+     else
+        w = 0.5 * ( w + 0.0)        
+     end if
+     read(fileXY,rec=(fileCounter-1)*nnz + zLevel) pA_xy
+
+     umean = sum(u)/real(nxy)
+     vmean = sum(v)/real(nxy)
+     wmean = sum(w)/real(nxy)
+
+     if(u_cutoff .ne. 0) then
+        !U filter
+        fft_in = u - umean
+        call dfftw_execute_dft_r2c(plan, fft_in, fft_out)
+        fft_out = fft_out/real(nxy)
+        do i = 1,nnx/2+1
+           do j = 1,nny
+              r = nint(sqrt(waveN(i)*waveN(i) + waveN(j)*waveN(j)))
+              if( r .gt. u_cutoff) then
+                 fft_out(i,j) = 0
+              end if
+           end do
+        end do
+        call dfftw_execute_dft_c2r(plan_inv, fft_out, fft_in)     
+        u = fft_in + umean
+        
+        !     write(*,*) 'Finished u filtering'
+        
+        !V filter
+        fft_in = v - vmean
+        call dfftw_execute_dft_r2c(plan, fft_in, fft_out)
+        fft_out = fft_out/real(nxy)
+        do i = 1,nnx/2+1
+           do j = 1,nny
+              r = nint(sqrt(waveN(i)*waveN(i) + waveN(j)*waveN(j)))
+              if( r .gt. u_cutoff) then
+                 fft_out(i,j) = 0
+              end if
+           end do
+        end do
+        call dfftw_execute_dft_c2r(plan_inv, fft_out, fft_in)     
+        v = fft_in + vmean
+        
+        !     write(*,*) 'Finished v filtering'
+        
+        !W filter
+        fft_in = w - wmean
+        call dfftw_execute_dft_r2c(plan, fft_in, fft_out)
+        fft_out = fft_out/real(nxy)
+        do i = 1,nnx/2+1
+           do j = 1,nny
+              r = nint(sqrt(waveN(i)*waveN(i) + waveN(j)*waveN(j)))
+              if( r .gt. w_cutoff) then
+                 fft_out(i,j) = 0
+              end if
+           end do
+        end do
+        call dfftw_execute_dft_c2r(plan_inv, fft_out, fft_in)     
+        w = fft_in + wmean
+     end if
+
+     !Perform linear interpolation
+     do j = 1,nny
+        yLocCur = (j-1)*dy
+        do i = 1,nnx
+           xLocCur = (i-1)*dx
+           call nearestPoints(dble(xLocCur*cos(yawAngle) - yLocCur*sin(yawAngle)), dble(xLocCur*sin(yawAngle) + yLocCur*cos(yawAngle)), ixl, ixu, iyl, iyu, wxlyl, wxuyl, wxlyu, wxuyu)
+           uRot(i,j) = u(ixl,iyl)*wxlyl + u(ixu,iyl)*wxuyl + u(ixl,iyu)*wxlyu + u(ixu,iyu)*wxuyu 
+           vRot(i,j) = v(ixl,iyl)*wxlyl + v(ixu,iyl)*wxuyl + v(ixl,iyu)*wxlyu + v(ixu,iyu)*wxuyu 
+           wRot(i,j) = w(ixl,iyl)*wxlyl + w(ixu,iyl)*wxuyl + w(ixl,iyu)*wxlyu + w(ixu,iyu)*wxuyu
+        end do
+     end do
+!      !Now rotate the velocity vector using 'u' as a temporary vector
+     u = uRot*cos(yawAngle) + vRot*sin(yawAngle)
+     vRot = -uRot*sin(yawAngle) + vRot*cos(yawAngle)
+     uRot = u
+
+     umeanCondHS = umeanCondHS + sum(u(:,:),u(:,:) .gt. uDD)
+     umeanCondLS = umeanCondLS + sum(u(:,:),u(:,:) .lt. uUD)
+     umeanCondDD = umeanCondDD + sum(u(:,:),w(:,:) .lt. wDD)
+     umeanCondUD = umeanCondUD + sum(u(:,:),w(:,:) .gt. wUD)
+     
+     vmeanCondHS = vmeanCondHS + sum(v(:,:),u(:,:) .gt. uDD)
+     vmeanCondLS = vmeanCondLS + sum(v(:,:),u(:,:) .lt. uUD)
+     vmeanCondDD = vmeanCondDD + sum(v(:,:),w(:,:) .lt. wDD)
+     vmeanCondUD = vmeanCondUD + sum(v(:,:),w(:,:) .gt. wUD)
+     
+     uDDcount = uDDcount + count(u(:,:) .gt. uDD) 
+     uUDcount = uUDcount + count(u(:,:) .lt. uUD) 
+     
+     wmeanCondHS = wmeanCondHS + sum(w(:,:),u(:,:) .gt. uDD)
+     wmeanCondLS = wmeanCondLS + sum(w(:,:),u(:,:) .lt. uUD)
+     wmeanCondDD = wmeanCondDD + sum(w(:,:),w(:,:) .lt. wDD)
+     wmeanCondUD = wmeanCondUD + sum(w(:,:),w(:,:) .gt. wUD)
+     wDDcount = wDDcount + count(w(:,:) .lt. wDD) 
+     wUDcount = wUDcount + count(w(:,:) .gt. wUD) 
+     
+  end do
+
+  umeanCondDD = umeanCondDD/wDDcount
+  umeanCondUD = umeanCondUD/wUDcount
+  umeanCondHS = umeanCondHS/uDDcount
+  umeanCondLS = umeanCondLS/uUDcount
+
+  vmeanCondDD = vmeanCondDD/wDDcount
+  vmeanCondUD = vmeanCondUD/wUDcount
+  vmeanCondHS = vmeanCondHS/uDDcount
+  vmeanCondLS = vmeanCondLS/uUDcount
+
+  wmeanCondHS = wmeanCondHS/uDDcount
+  wmeanCondLS = wmeanCondLS/uUDcount
+  wmeanCondDD = wmeanCondDD/wDDcount
+  wmeanCondUD = wmeanCondUD/wUDcount
+
+
+  open(unit=89,file="zLevel"//trim(adjustl(writeFileName))//"/conditionalMeanVelProfile")
+  write(89,"(A)") 'zLevel umeanUD     umeanLS   umean      umeanDD  umeanHS    wmeanLS    wmeanUD    wmean       wmeanDD      wmeanHS'
+  write(89,*)
+  write(89,"(I,16F)") zLevel, umeanCondUD, umeanCondLS, uMeanFromProfile, umeanCondDD, umeanCondHS,&
+       vmeanCondUD, vmeanCondLS, vMeanFromProfile, vmeanCondDD, vmeanCondHS, &
+       wmeanCondUD, wmeanCondLS, 0.0, wmeanCondDD, wmeanCondHS
+  write(89,*)
+  close(89)
+
+  close(fileXY)
 
 
 end program generateIsocontours

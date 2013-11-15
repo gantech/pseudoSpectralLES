@@ -51,7 +51,7 @@ program calcUnfilteredPDF
   real(kind=4), dimension(:,:), allocatable :: u,v,w !Plane Arrays 
   real(kind=4), dimension(:,:), allocatable :: uRot,vRot,wRot !Plane Arrays 
   real(kind=4), dimension(:), allocatable :: uWrite,vWrite,wWrite !Plane Arrays in the format to be written into vtr files
-  real :: umean, vmean, wmean
+  double precision :: umean, vmean, wmean
   integer :: zLevel !The z level at which the data is to be visualized.
   integer :: sizeOfReal=1 !The size of real in words on this system
   integer :: fileXY, fileDT  !The index of the files used to open the "xy.data" and the "dt" files
@@ -66,8 +66,8 @@ program calcUnfilteredPDF
   character *40  writeFilename, readFileName
 
   !PDF
-  real :: umin, umax, uvar, wmin, wmax, wvar
-  real, allocatable, dimension(:) :: updf, wpdf
+  double precision :: umin, umax, uvar, wmin, wmax, wvar
+  double precision, allocatable, dimension(:) :: updf, wpdf
   real :: binSizeU, binSizeW
   integer :: binLoc, nbinsU, nbinsW
 
@@ -85,7 +85,7 @@ program calcUnfilteredPDF
   fileDT = 91
   
   nxy = nnx*nny
-!  nt = 10
+!  nt = 100
   nt =  5000
 
   allocate(pA_xy(nvar,nnx,nny))
@@ -128,9 +128,9 @@ program calcUnfilteredPDF
         w = 0.5 * ( w + 0.0)        
      end if
 
-     umean = sum(u)/real(nxy)
-     vmean = sum(v)/real(nxy)
-     wmean = sum(w)/real(nxy)
+     umean = sum(u)/(dble(nnx)*dble(nny))
+     vmean = sum(v)/(dble(nnx)*dble(nny))
+     wmean = sum(w)/(dble(nnx)*dble(nny))
 
      !Perform linear interpolation
      do j = 1,nny
@@ -161,9 +161,11 @@ program calcUnfilteredPDF
 
   write(*,*) 'Finished time loop'
   
-  updf = updf/(real(nt*nxy))
-  wpdf = wpdf/(real(nt*nxy))
+  updf = updf/(dble(nt)*dble(nnx)*dble(nny))
+  wpdf = wpdf/(dble(nt)*dble(nnx)*dble(nny))
 
+  updf = updf/real(nt*nnx*nny)
+  
   write(*,*) 'Finished computing pdfs'
 
   write(writeFileName,'(I0.2)') zLevel
@@ -173,26 +175,35 @@ program calcUnfilteredPDF
 
   open(unit=88,file="zLevel"//trim(adjustl(writeFileName))//"/uUnfilteredPDF")
   write(*,*) 'Finished opening file uPDF'
-  write(88,"(A)",advance="no")'#  Bin , u unfiltered PDF'
+  write(88,"(A)")'#  Bin , u unfiltered PDF'
   write(*,*) 'Finished writing one line to uPDF'
   write(88,*) 
   write(*,*) 'Finished writing second line to uPDF'
   do i=0,nbinsU
-     write(88,"(F,F)",advance="no") umin+0.5*binSizeU + i*binSizeU, updf(i)/binSizeU
+     write(88,"(F,F)") umin+0.5*binSizeU + i*binSizeU, updf(i)/binSizeU
      write(88,*) 
   end do
   close(88)
   
   open(unit=88,file="zLevel"//trim(adjustl(writeFileName))//"/wUnfilteredPDF")
-  write(88,"(A)",advance="no")'#  Bin , w unfiltered PDF'
+  write(88,"(A)")'#  Bin , w unfiltered PDF'
   write(88,*) 
   do i=0,nbinsW
-     write(88,"(F,F)",advance="no") wmin+0.5*binSizeW + i*binSizeW, wpdf(i)/binSizeW
+     write(88,"(F,F)") wmin+0.5*binSizeW + i*binSizeW, wpdf(i)/binSizeW
      write(88,*) 
   end do
   close(88)
 
-
-  close(fileXY)
+!   deallocate(pA_xy)
+!   deallocate(u)
+!   deallocate(v)
+!   deallocate(w)
+!   deallocate(uRot)
+!   deallocate(vRot)
+!   deallocate(wRot)
+!   deallocate(uPDF)
+!   deallocate(wPDF)
+  
+!   close(fileXY)
   
 end program calcUnfilteredPDF

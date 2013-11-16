@@ -88,6 +88,10 @@ program calcFilteredPDF
   real :: wDD, wUD !DD - DownDraft, UD - UpDraft
   integer*8 :: uDDcount, uUDcount !Integer count of number of points in these structures
   integer*8 :: wDDcount, wUDcount !Integer count of number of points in these structures
+  real :: umeanCondUD, vmeanCondUD, wmeanCondUD !Conditional means in updraft
+  real :: umeanCondDD, vmeanCondDD, wmeanCondDD !Conditional means in downdraft
+  real :: umeanCondLS, vmeanCondLS, wmeanCondLS !Conditional means in low speed streaks
+  real :: umeanCondHS, vmeanCondHS, wmeanCondHS !Conditional means in high speed streaks
 
   !PDF
   real :: umin, umax, uvar, wmin, wmax, wvar
@@ -120,14 +124,6 @@ program calcFilteredPDF
   allocate(vRot(nnx,nny))
   allocate(wRot(nnx,nny))
 
-  !Read in umean from the profile
-  open(fileUMeanProfile,file="uxym")
-  read(fileUMeanProfile,'(A1)') dtFileReadLine !Dummy don't bother
-  do iz = 1, zLevel
-     read(fileUMeanProfile,*) uMeanFromProfile, vMeanFromProfile, wmean
-  end do
-  close(fileUMeanProfile)
-
   write(*,*) 'Usage: ExecutableName CutOffWaveNumber u_ud_cdf u_dd_cdf w_ud_cdf w_dd_cdf'
   call getarg(1,buffer)
   read(buffer,*) zLevel
@@ -138,6 +134,27 @@ program calcFilteredPDF
   read(buffer,*) v_cutoff
   read(buffer,*) w_cutoff
   write(*,*) 'Fixing u,v, and w cutoff wavenumber to ', u_cutoff
+
+  call getarg(3,buffer)
+  read(buffer,*) u_ud_cdf
+
+  call getarg(4,buffer)
+  read(buffer,*) u_dd_cdf
+
+  call getarg(5,buffer)
+  read(buffer,*) w_ud_cdf
+
+  call getarg(6,buffer)
+  read(buffer,*) w_dd_cdf
+
+  !Read in umean from the profile
+  open(fileUMeanProfile,file="uxym")
+  read(fileUMeanProfile,'(A1)') dtFileReadLine !Dummy don't bother
+  do iz = 1, zLevel
+     read(fileUMeanProfile,*) uMeanFromProfile, vMeanFromProfile, wmean
+     write(*,*) iz, uMeanFromProfile, vMeanFromProfile, wmean
+  end do
+  close(fileUMeanProfile)
 
   !Initialize PDF variables
   umin = 0.0
@@ -291,20 +308,18 @@ program calcFilteredPDF
 
   do i=0,nbinsU
      !     write(*,*) wmin+0.5*binSize + i*binSize, ' ', i,  ' ', wpdf(i), ' ', sum(wpdf(:i)) 
-     if(  (sum(updf(:i,iz)) .gt. u_ud_cdf) .and. (uud(iz) .eq. 0)) then
-        uud(iz) = umin+0.5*binSizeU + i*binSizeU
+     if(  (sum(updf(:i)) .gt. u_ud_cdf) .and. (uud .eq. 0)) then
+        uud = umin+0.5*binSizeU + i*binSizeU
      end if
-     if(  (sum(updf(:i,iz)) .gt. u_dd_cdf) .and. (udd(iz) .eq. 0)) then
-        udd(iz) = umin+0.5*binSizeU + i*binSizeU
+     if(  (sum(updf(:i)) .gt. u_dd_cdf) .and. (udd .eq. 0)) then
+        udd = umin+0.5*binSizeU + i*binSizeU
      end if
   end do
 
   open(unit=88,file="zLevel"//trim(adjustl(writeFileName))//"/wFilteredPDF")
   write(88,"(A)")'#  Bin , w filtered PDF'
-  write(88,*) 
   do i=0,nbinsW
      write(88,"(F,F)") wmin+0.5*binSizeW + i*binSizeW, wpdf(i)/binSizeW
-     write(88,*) 
   end do
   close(88)
   
@@ -460,4 +475,4 @@ program calcFilteredPDF
   close(fileXY)
 
 
-end program generateIsocontours
+end program calcFilteredPDF

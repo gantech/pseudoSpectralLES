@@ -52,8 +52,8 @@ program calcFilteredPDF
   real(kind=4), dimension(:,:,:), allocatable :: pA_xy !Plane Arrays 
   real(kind=4), dimension(:,:), allocatable :: u,v,w !Plane Arrays 
   real(kind=4), dimension(:,:), allocatable :: uRot,vRot,wRot !Plane Arrays 
-  real :: umean, vmean, wmean
-  real :: uMeanFromProfile, vMeanFromProfile !The mean velocity from the profile.
+  double precision :: umean, vmean, wmean
+  double precision :: uMeanFromProfile, vMeanFromProfile !The mean velocity from the profile.
   integer :: zLevel !The z level at which the data is to be visualized.
   integer :: sizeOfReal=1 !The size of real in words on this system
   integer :: fileXY  !The index of the files used to open the "xy.data" file
@@ -83,20 +83,20 @@ program calcFilteredPDF
   character *40  writeFilename, readFileName
 
   !Thresholding to define downdraft, mean and updraft in horizontal and vertical velocity
-  real :: u_ud_cdf, u_dd_cdf, w_ud_cdf, w_dd_cdf !Thresholds based on the Cumulative Density Function of filtered data
-  real :: uDD, uUD !DD - DownDraft, UD - UpDraft
-  real :: wDD, wUD !DD - DownDraft, UD - UpDraft
+  double precision :: u_ud_cdf, u_dd_cdf, w_ud_cdf, w_dd_cdf !Thresholds based on the Cumulative Density Function of filtered data
+  double precision :: uDD, uUD !DD - DownDraft, UD - UpDraft
+  double precision :: wDD, wUD !DD - DownDraft, UD - UpDraft
   integer*8 :: uDDcount, uUDcount !Integer count of number of points in these structures
   integer*8 :: wDDcount, wUDcount !Integer count of number of points in these structures
-  real :: umeanCondUD, vmeanCondUD, wmeanCondUD !Conditional means in updraft
-  real :: umeanCondDD, vmeanCondDD, wmeanCondDD !Conditional means in downdraft
-  real :: umeanCondLS, vmeanCondLS, wmeanCondLS !Conditional means in low speed streaks
-  real :: umeanCondHS, vmeanCondHS, wmeanCondHS !Conditional means in high speed streaks
+  double precision :: umeanCondUD, vmeanCondUD, wmeanCondUD !Conditional means in updraft
+  double precision :: umeanCondDD, vmeanCondDD, wmeanCondDD !Conditional means in downdraft
+  double precision :: umeanCondLS, vmeanCondLS, wmeanCondLS !Conditional means in low speed streaks
+  double precision :: umeanCondHS, vmeanCondHS, wmeanCondHS !Conditional means in high speed streaks
 
   !PDF
-  real :: umin, umax, uvar, wmin, wmax, wvar
-  real, allocatable, dimension(:) :: updf, wpdf
-  real :: binSizeU, binSizeW
+  double precision :: umin, umax, uvar, wmin, wmax, wvar
+  double precision, allocatable, dimension(:) :: updf, wpdf
+  double precision :: binSizeU, binSizeW
   integer :: binLoc, nbinsU, nbinsW
 
   
@@ -113,8 +113,8 @@ program calcFilteredPDF
   fileUMeanProfile = 83
   
   nxy = nnx*nny
-  nt = 10
-!  nt =  5000
+!  nt = 10
+  nt =  5000
 
   allocate(pA_xy(nvar,nnx,nny))
   allocate(u(nnx,nny))
@@ -155,6 +155,10 @@ program calcFilteredPDF
      write(*,*) iz, uMeanFromProfile, vMeanFromProfile, wmean
   end do
   close(fileUMeanProfile)
+  umean = uMeanFromProfile*cos(yawAngle) + vMeanFromProfile*sin(yawAngle)
+  vMeanFromProfile = -uMeanFromProfile*sin(yawAngle) + vMeanFromProfile*cos(yawAngle)
+  uMeanFromProfile =  umean
+
 
   !Initialize PDF variables
   umin = 0.0
@@ -208,15 +212,15 @@ program calcFilteredPDF
      end if
      read(fileXY,rec=(fileCounter-1)*nnz + zLevel) pA_xy
 
-     umean = sum(u)/real(nxy)
-     vmean = sum(v)/real(nxy)
-     wmean = sum(w)/real(nxy)
+     umean = sum(u)/dble(dble(nnx)*dble(nny))
+     vmean = sum(v)/dble(dble(nnx)*dble(nny))
+     wmean = sum(w)/dble(dble(nnx)*dble(nny))
 
      if(u_cutoff .ne. 0) then
         !U filter
         fft_in = u - umean
         call dfftw_execute_dft_r2c(plan, fft_in, fft_out)
-        fft_out = fft_out/real(nxy)
+        fft_out = fft_out/dble(dble(nnx)*dble(nny))
         do i = 1,nnx/2+1
            do j = 1,nny
               r = nint(sqrt(waveN(i)*waveN(i) + waveN(j)*waveN(j)))
@@ -233,7 +237,7 @@ program calcFilteredPDF
         !V filter
         fft_in = v - vmean
         call dfftw_execute_dft_r2c(plan, fft_in, fft_out)
-        fft_out = fft_out/real(nxy)
+        fft_out = fft_out/dble(dble(nnx)*dble(nny))
         do i = 1,nnx/2+1
            do j = 1,nny
               r = nint(sqrt(waveN(i)*waveN(i) + waveN(j)*waveN(j)))
@@ -250,7 +254,7 @@ program calcFilteredPDF
         !W filter
         fft_in = w - wmean
         call dfftw_execute_dft_r2c(plan, fft_in, fft_out)
-        fft_out = fft_out/real(nxy)
+        fft_out = fft_out/dble(dble(nnx)*dble(nny))
         do i = 1,nnx/2+1
            do j = 1,nny
               r = nint(sqrt(waveN(i)*waveN(i) + waveN(j)*waveN(j)))
@@ -291,8 +295,8 @@ program calcFilteredPDF
 
   end do
 
-  updf = updf/(real(nt*nxy))
-  wpdf = wpdf/(real(nt*nxy))
+  updf = updf/(dble(dble(nt)*dble(nnx)*dble(nny)))
+  wpdf = wpdf/(dble(dble(nt)*dble(nnx)*dble(nny)))
 
   write(writeFileName,'(I0.2)') zLevel
   call system("mkdir "//"zLevel"//trim(adjustl(writeFileName)))
@@ -315,6 +319,9 @@ program calcFilteredPDF
         udd = umin+0.5*binSizeU + i*binSizeU
      end if
   end do
+  write(*,*) 'uud = ' , uud
+  write(*,*) 'udd = ' , udd
+  
 
   open(unit=88,file="zLevel"//trim(adjustl(writeFileName))//"/wFilteredPDF")
   write(88,"(A)")'#  Bin , w filtered PDF'
@@ -322,7 +329,20 @@ program calcFilteredPDF
      write(88,"(F,F)") wmin+0.5*binSizeW + i*binSizeW, wpdf(i)/binSizeW
   end do
   close(88)
+
+  do i=0,nbinsW
+     !     write(*,*) wmin+0.5*binSize + i*binSize, ' ', i,  ' ', wpdf(i), ' ', sum(wpdf(:i)) 
+     if(  (sum(wpdf(:i)) .gt. w_ud_cdf) .and. (wud .eq. 0)) then
+        wud = wmin+0.5*binSizeW + i*binSizeW
+     end if
+     if(  (sum(wpdf(:i)) .gt. w_dd_cdf) .and. (wdd .eq. 0)) then
+        wdd = wmin+0.5*binSizeW + i*binSizeW
+     end if
+  end do
+  write(*,*) 'wud = ' , wud
+  write(*,*) 'wdd = ' , wdd
   
+
   write(*,*) 'Finished computing and writing PDFs. Beginning second time loop'  
   
   !Initializing all conditional means to zero
@@ -354,15 +374,15 @@ program calcFilteredPDF
      end if
      read(fileXY,rec=(fileCounter-1)*nnz + zLevel) pA_xy
 
-     umean = sum(u)/real(nxy)
-     vmean = sum(v)/real(nxy)
-     wmean = sum(w)/real(nxy)
+     umean = sum(u)/dble(dble(nnx)*dble(nny))
+     vmean = sum(v)/dble(dble(nnx)*dble(nny))
+     wmean = sum(w)/dble(dble(nnx)*dble(nny))
 
      if(u_cutoff .ne. 0) then
         !U filter
         fft_in = u - umean
         call dfftw_execute_dft_r2c(plan, fft_in, fft_out)
-        fft_out = fft_out/real(nxy)
+        fft_out = fft_out/dble(dble(nnx)*dble(nny))
         do i = 1,nnx/2+1
            do j = 1,nny
               r = nint(sqrt(waveN(i)*waveN(i) + waveN(j)*waveN(j)))
@@ -379,7 +399,7 @@ program calcFilteredPDF
         !V filter
         fft_in = v - vmean
         call dfftw_execute_dft_r2c(plan, fft_in, fft_out)
-        fft_out = fft_out/real(nxy)
+        fft_out = fft_out/dble(dble(nnx)*dble(nny))
         do i = 1,nnx/2+1
            do j = 1,nny
               r = nint(sqrt(waveN(i)*waveN(i) + waveN(j)*waveN(j)))
@@ -396,7 +416,7 @@ program calcFilteredPDF
         !W filter
         fft_in = w - wmean
         call dfftw_execute_dft_r2c(plan, fft_in, fft_out)
-        fft_out = fft_out/real(nxy)
+        fft_out = fft_out/dble(dble(nnx)*dble(nny))
         do i = 1,nnx/2+1
            do j = 1,nny
               r = nint(sqrt(waveN(i)*waveN(i) + waveN(j)*waveN(j)))
@@ -425,25 +445,25 @@ program calcFilteredPDF
      vRot = -uRot*sin(yawAngle) + vRot*cos(yawAngle)
      uRot = u
 
-     umeanCondHS = umeanCondHS + sum(u(:,:),u(:,:) .gt. uDD)
-     umeanCondLS = umeanCondLS + sum(u(:,:),u(:,:) .lt. uUD)
-     umeanCondDD = umeanCondDD + sum(u(:,:),w(:,:) .lt. wDD)
-     umeanCondUD = umeanCondUD + sum(u(:,:),w(:,:) .gt. wUD)
+     umeanCondHS = umeanCondHS + sum(uRot(:,:),uRot(:,:) .gt. uDD)
+     umeanCondLS = umeanCondLS + sum(uRot(:,:),uRot(:,:) .lt. uUD)
+     umeanCondDD = umeanCondDD + sum(uRot(:,:),wRot(:,:) .lt. wDD)
+     umeanCondUD = umeanCondUD + sum(uRot(:,:),wRot(:,:) .gt. wUD)
      
-     vmeanCondHS = vmeanCondHS + sum(v(:,:),u(:,:) .gt. uDD)
-     vmeanCondLS = vmeanCondLS + sum(v(:,:),u(:,:) .lt. uUD)
-     vmeanCondDD = vmeanCondDD + sum(v(:,:),w(:,:) .lt. wDD)
-     vmeanCondUD = vmeanCondUD + sum(v(:,:),w(:,:) .gt. wUD)
+     vmeanCondHS = vmeanCondHS + sum(vRot(:,:),uRot(:,:) .gt. uDD)
+     vmeanCondLS = vmeanCondLS + sum(vRot(:,:),uRot(:,:) .lt. uUD)
+     vmeanCondDD = vmeanCondDD + sum(vRot(:,:),wRot(:,:) .lt. wDD)
+     vmeanCondUD = vmeanCondUD + sum(vRot(:,:),wRot(:,:) .gt. wUD)
      
-     uDDcount = uDDcount + count(u(:,:) .gt. uDD) 
-     uUDcount = uUDcount + count(u(:,:) .lt. uUD) 
+     uDDcount = uDDcount + count(uRot(:,:) .gt. uDD) 
+     uUDcount = uUDcount + count(uRot(:,:) .lt. uUD) 
      
-     wmeanCondHS = wmeanCondHS + sum(w(:,:),u(:,:) .gt. uDD)
-     wmeanCondLS = wmeanCondLS + sum(w(:,:),u(:,:) .lt. uUD)
-     wmeanCondDD = wmeanCondDD + sum(w(:,:),w(:,:) .lt. wDD)
-     wmeanCondUD = wmeanCondUD + sum(w(:,:),w(:,:) .gt. wUD)
-     wDDcount = wDDcount + count(w(:,:) .lt. wDD) 
-     wUDcount = wUDcount + count(w(:,:) .gt. wUD) 
+     wmeanCondHS = wmeanCondHS + sum(wRot(:,:),uRot(:,:) .gt. uDD)
+     wmeanCondLS = wmeanCondLS + sum(wRot(:,:),uRot(:,:) .lt. uUD)
+     wmeanCondDD = wmeanCondDD + sum(wRot(:,:),wRot(:,:) .lt. wDD)
+     wmeanCondUD = wmeanCondUD + sum(wRot(:,:),wRot(:,:) .gt. wUD)
+     wDDcount = wDDcount + count(wRot(:,:) .lt. wDD) 
+     wUDcount = wUDcount + count(wRot(:,:) .gt. wUD) 
      
   end do
 

@@ -113,7 +113,7 @@ program calcFilteredPDF
   fileUMeanProfile = 83
   
   nxy = nnx*nny
-!  nt = 10
+!  nt = 100
   nt =  5000
 
   allocate(pA_xy(nvar,nnx,nny))
@@ -359,6 +359,12 @@ program calcFilteredPDF
   vmeanCondDD = 0.0
   wmeanCondUD = 0.0
   wmeanCondDD = 0.0
+
+  
+  uDDcount = 0
+  uUDcount = 0
+  wDDcount = 0
+  wUDcount = 0
   
   do fileCounter=1,nt
      write(*,*) 'Reading record number ', (fileCounter-1)*nnz + zLevel
@@ -464,23 +470,23 @@ program calcFilteredPDF
      wmeanCondUD = wmeanCondUD + sum(wRot(:,:),wRot(:,:) .gt. wUD)
      wDDcount = wDDcount + count(wRot(:,:) .lt. wDD) 
      wUDcount = wUDcount + count(wRot(:,:) .gt. wUD) 
-     
+
   end do
 
-  umeanCondDD = umeanCondDD/wDDcount
-  umeanCondUD = umeanCondUD/wUDcount
-  umeanCondHS = umeanCondHS/uDDcount
-  umeanCondLS = umeanCondLS/uUDcount
+  umeanCondDD = umeanCondDD/dble(wDDcount)
+  umeanCondUD = umeanCondUD/dble(wUDcount)
+  umeanCondHS = umeanCondHS/dble(uDDcount)
+  umeanCondLS = umeanCondLS/dble(uUDcount)
 
-  vmeanCondDD = vmeanCondDD/wDDcount
-  vmeanCondUD = vmeanCondUD/wUDcount
-  vmeanCondHS = vmeanCondHS/uDDcount
-  vmeanCondLS = vmeanCondLS/uUDcount
+  vmeanCondDD = vmeanCondDD/dble(wDDcount)
+  vmeanCondUD = vmeanCondUD/dble(wUDcount)
+  vmeanCondHS = vmeanCondHS/dble(uDDcount)
+  vmeanCondLS = vmeanCondLS/dble(uUDcount)
 
-  wmeanCondHS = wmeanCondHS/uDDcount
-  wmeanCondLS = wmeanCondLS/uUDcount
-  wmeanCondDD = wmeanCondDD/wDDcount
-  wmeanCondUD = wmeanCondUD/wUDcount
+  wmeanCondHS = wmeanCondHS/dble(uDDcount)
+  wmeanCondLS = wmeanCondLS/dble(uUDcount)
+  wmeanCondDD = wmeanCondDD/dble(wDDcount)
+  wmeanCondUD = wmeanCondUD/dble(wUDcount)
 
 
   open(unit=89,file="zLevel"//trim(adjustl(writeFileName))//"/conditionalMeanVelProfile")

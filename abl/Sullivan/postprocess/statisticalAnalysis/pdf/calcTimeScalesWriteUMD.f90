@@ -223,10 +223,10 @@ program calcTimeScalesWriteUMD
   write(*,*) 'Ideally.. I should read the thresholds for the structures from the corresponding zLevel directory...based on the computation of the filtered PDF.'
   write(*,*) 'However..I am hard coding them for now. Until the filteredPDF code is formatted to write them in an appropriate format'
 
-  uUD =    12.9250001925975     
-  uDD =    14.4250002149493     
-  wUD =   0.289999881759286     
-  wDD =  -0.330000104382634     
+  uUD =   13.025
+  uDD =   14.525
+  wUD =   0.3099
+  wDD =  -0.3500
 
   !Initialize all time scales 
   t_u_UMD = 0.0

@@ -7,4 +7,5 @@ module swap PrgEnv-pgi PrgEnv-intel
 cd $PBS_O_WORKDIR
 
 
-./a.out 12 7
+./isocontoursUnfiltered 12
+

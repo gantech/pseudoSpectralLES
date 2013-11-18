@@ -1,0 +1,9 @@
+#!/bin/bash
+#PBS -A TG-ATM110007
+#PBS -l size=12,walltime=5:00:00
+
+module swap PrgEnv-pgi PrgEnv-intel 
+
+cd $PBS_O_WORKDIR
+
+./isocontoursFiltered 12 24

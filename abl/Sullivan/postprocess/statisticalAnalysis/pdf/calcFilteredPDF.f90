@@ -58,6 +58,7 @@ program calcFilteredPDF
   integer :: sizeOfReal=1 !The size of real in words on this system
   integer :: fileXY  !The index of the files used to open the "xy.data" file
   integer :: fileUmeanProfile !The index of the file used to open the "uxym" file
+  integer :: filewSpectrumPeakWavenumberProfile !The index of the file used to open the "wSpectrumPeakWavenumber" file
   character :: dtFileReadLine
 
   !Variables to interpolate to yawed co-ordinate system
@@ -111,8 +112,8 @@ program calcFilteredPDF
   sizeOfReal = 1
   fileXY = 95
   fileUMeanProfile = 83
-  
-  nxy = nnx*nny
+  filewSpectrumPeakWavenumberProfile = 93
+
 !  nt = 100
   nt =  5000
 
@@ -130,21 +131,15 @@ program calcFilteredPDF
   write(*,*) 'Working on zLevel = ', zLevel
 
   call getarg(2,buffer)
-  read(buffer,*) u_cutoff
-  read(buffer,*) v_cutoff
-  read(buffer,*) w_cutoff
-  write(*,*) 'Fixing u,v, and w cutoff wavenumber to ', u_cutoff
-
-  call getarg(3,buffer)
   read(buffer,*) u_ud_cdf
 
-  call getarg(4,buffer)
+  call getarg(3,buffer)
   read(buffer,*) u_dd_cdf
 
-  call getarg(5,buffer)
+  call getarg(4,buffer)
   read(buffer,*) w_ud_cdf
 
-  call getarg(6,buffer)
+  call getarg(5,buffer)
   read(buffer,*) w_dd_cdf
 
   !Read in umean from the profile
@@ -159,6 +154,17 @@ program calcFilteredPDF
   vMeanFromProfile = -uMeanFromProfile*sin(yawAngle) + vMeanFromProfile*cos(yawAngle)
   uMeanFromProfile =  umean
 
+  !Read in umean from the profile
+  open(filewSpectrumPeakWavenumberProfile,file="wSpectrumPeakWavenumber")
+  read(filewSpectrumPeakWavenumberProfile,'(A1)') dtFileReadLine !Dummy don't bother
+  do iz = 1, zLevel
+     read(filewSpectrumPeakWavenumberProfile,*) k, u_cutoff
+  end do
+  close(filewSpectrumPeakWavenumberProfile)
+  u_cutoff = 3*u_cutoff !Cut off at 3 times the peak in the w spectrum
+  v_cutoff = u_cutoff
+  w_cutoff = u_cutoff
+  write(*,*) 'Filtering at a wave number of ', u_cutoff
 
   !Initialize PDF variables
   umin = 0.0

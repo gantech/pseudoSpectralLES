@@ -15,6 +15,12 @@ del data
 
 if __name__=="__main__":
     import matplotlib.pyplot as p
+    
+    with open('wSpectrumPeakWavenumber','w') as wPeakFile:
+        wPeakFile.write('iz           wSpectrumPeakWavenumber'+'\n')
+        for z in range(size(zLevels)):
+            wPeakFile.write(str(z+1)+'           '+str(w[z,:].argmax())+'\n')
+
 
     print logspace(-7,3,11)
     #Make spectra plots at each level

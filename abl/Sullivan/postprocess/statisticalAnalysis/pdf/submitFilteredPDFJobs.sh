@@ -9,6 +9,7 @@ rm temp.pbs
 cd /lustre/scratch/gantech/les_abl/Sullivan/data/sullivanTest/case037/statisticalAnalysis/pdf
 cp ~/pseudoSpectralLES/abl/Sullivan/postprocess/statisticalAnalysis/pdf/filteredPDF_*.pbs .
 cp ~/pseudoSpectralLES/abl/Sullivan/postprocess/statisticalAnalysis/pdf/filteredPDFCalc .
+cp ~/pseudoSpectralLES/abl/Sullivan/postprocess/statisticalAnalysis/pdf/wSpectrumPeakWavenumber .
 for (( i=1; i<=50; i++ ))
 do 
     qsub filteredPDF_${i}.pbs

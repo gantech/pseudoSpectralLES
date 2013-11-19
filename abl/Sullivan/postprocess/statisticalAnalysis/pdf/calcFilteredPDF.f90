@@ -210,7 +210,7 @@ program calcFilteredPDF
      u = pA_xy(1,:,:) + 7.5
      v = pA_xy(2,:,:)
      w = pA_xy(3,:,:) !Temporary
-     if(zLevel /= 0) then
+     if(zLevel /= 1) then
         read(fileXY,rec=(fileCounter-1)*nnz + zLevel-1) pA_xy
         w = 0.5 * ( w + pA_xy(3,:,:))
      else

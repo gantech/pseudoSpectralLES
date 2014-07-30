@@ -36,7 +36,7 @@ program generateIsocontours
   
   use LIB_VTK_IO
   implicit none
-  include "/opt/fftw/3.3.0.0/x86_64/include/fftw3.f"
+  include "fftw3.f"
 
   integer :: i,j,k,it,wtx,wty,fileCounter,iz !Counter variables
   

@@ -201,10 +201,10 @@ program writeOpenFOAMBCs
 
      write(11,*) (84)*wtExtentZ
      write(11,*)"("
-     j = 251-42 !Corresponds to turbine at x=1674m
+     j = 254-42+1 !Corresponds to turbine at x=1674m
      yLocCur = (j-0.5)*dy
      do k=1,wtExtentZ
-        do i=254-42+1, 254+42 !Corresponds to turbine at 1636-1762m
+        do i=251-42+1, 251+42 !Corresponds to turbine at 1636-1762m
            xLocCur = (i-1)*dx
            call nearestPoints(dble(xLocCur*cos(yawAngle) - yLocCur*sin(yawAngle)), dble(xLocCur*sin(yawAngle) + yLocCur*cos(yawAngle)), ixl, ixu, iyl, iyu, wxlyl, wxuyl, wxlyu, wxuyu)
            uRot = u(ixl,iyl,k)*wxlyl + u(ixu,iyl,k)*wxuyl + u(ixl,iyu,k)*wxlyu + u(ixu,iyu,k)*wxuyu
@@ -239,10 +239,10 @@ program writeOpenFOAMBCs
      write(11,*)"0"
      write(11,*) (84)*wtExtentZ
      write(11,*)"("
-     j = 251-42 !Corresponds to turbine at x=1674m
+     j = 254-42+1 !Corresponds to turbine at x=1674m
      yLocCur = (j-0.5)*dy
      do k=1,wtExtentZ
-        do i=254-42+1, 254+42 !Corresponds to turbine at 1636-1762m
+        do i=251-42+1, 251+42 !Corresponds to turbine at 1636-1762m
            xLocCur = (i-1)*dx
            call nearestPoints(dble(xLocCur*cos(yawAngle) - yLocCur*sin(yawAngle)), dble(xLocCur*sin(yawAngle) + yLocCur*cos(yawAngle)), ixl, ixu, iyl, iyu, wxlyl, wxuyl, wxlyu, wxuyu)
            tRot = t(ixl,iyl,k)*wxlyl + t(ixu,iyl,k)*wxuyl + t(ixl,iyu,k)*wxlyu + t(ixu,iyu,k)*wxuyu 
@@ -275,9 +275,10 @@ program writeOpenFOAMBCs
      write(11,*)"0"
      write(11,*) 84*wtExtentZ
      write(11,*)"("
-     j = 251-42 !Corresponds to turbine at x=1674m
+     j = 254-42+1 !Corresponds to turbine at x=1674m
+     yLocCur = (j-0.5)*dy
      do k=1,wtExtentZ
-        do i=254-42+1, 254+42 !Corresponds to turbine at 1636-1762m
+        do i=251-42+1, 251+42 !Corresponds to turbine at 1636-1762m
            xLocCur = (i-1)*dx
            call nearestPoints(dble(xLocCur*cos(yawAngle) - yLocCur*sin(yawAngle)), dble(xLocCur*sin(yawAngle) + yLocCur*cos(yawAngle)), ixl, ixu, iyl, iyu, wxlyl, wxuyl, wxlyu, wxuyu)
            eRot = e(ixl,iyl,k)*wxlyl + e(ixu,iyl,k)*wxuyl + e(ixl,iyu,k)*wxlyu + e(ixu,iyu,k)*wxuyu 

@@ -47,7 +47,8 @@ program writeOpenFOAMBCs
   integer :: nt !Number of time steps
   real :: dt  !Time step
   real(kind=4), dimension(:,:,:), allocatable :: pA_xy !Plane Arrays 
-  real(kind=4), dimension(:,:,:), allocatable :: u,v,w,t,e !Plane Arrays 
+  real(kind=4), dimension(:,:), allocatable :: u,v,t,e !Plane Arrays 
+  real(kind=4), dimension(:,:,:), allocatable :: w !Plane Arrays 
   real, allocatable, dimension(:) :: umeanProfile, vmeanProfile, wmeanProfile, tmeanProfile !Profile of mean velocities and temperature from postprocessing of his.mp files
   integer :: zLevel !The z level at which this analysis is to be done.
   integer :: sizeOfReal=1 !The size of real in words on this system
@@ -102,11 +103,11 @@ program writeOpenFOAMBCs
   nt =  1500
   
   allocate(pA_xy(nvar,nnx,nny))
-  allocate(u(nnx,nny,nnz))
-  allocate(v(nnx,nny,nnz))
-  allocate(w(nnx,nny,0:nnz))
-  allocate(t(nnx,nny,nnz))
-  allocate(e(nnx,nny,nnz))
+  allocate(u(nnx,nny))
+  allocate(v(nnx,nny))
+  allocate(w(nnx,nny,0:1))
+  allocate(t(nnx,nny))
+  allocate(e(nnx,nny))
   allocate(umeanProfile(nnz))
   allocate(vmeanProfile(nnz))
   allocate(wmeanProfile(nnz))
@@ -128,7 +129,7 @@ program writeOpenFOAMBCs
   close(fileTMeanProfile)
 
   !Writing list of points on inlet face
-  open(unit=11,file="sideOutlet/points")
+  open(unit=11,file="top/points")
   write(11,*)"/*--------------------------------*- C++ -*----------------------------------*\ "
   write(11,*)"| =========                 |                                                 | "
   write(11,*)"| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           | "
@@ -145,9 +146,9 @@ program writeOpenFOAMBCs
   write(11,*)"}"
   write(11,*)"// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //"
   write(11,*)"("
-  do k=1,wtExtentZ
+  do j=1,84
      do i= 1, 84
-        write(11,*)"(", (i-1)*dx, " ", 0, " ", k*dz - 0.5*dz,")"
+        write(11,*)"(", (i-1)*dx, " ", (j-1)*dy, " ", 250.0,")"
      end do
   end do
   write(11,*)")"
@@ -168,19 +169,20 @@ program writeOpenFOAMBCs
   tLESnew = timeStart
   do fileCounter=1678,nt+1678
      if(meanOrTurb == 1) then
-        do k = 1, nnz
-           read(fileXY,rec=(fileCounter-1)*nnz + k) pA_xy        
-           u(:,:,k) = pA_xy(1,:,:) + 7.5
-           v(:,:,k) = pA_xy(2,:,:)
-           w(:,:,k) = pA_xy(3,:,:)
-           t(:,:,k) = pA_xy(4,:,:) + 300.0
-           e(:,:,k) = pA_xy(5,:,:)
-        end do
+        k = 32
+        read(fileXY,rec=(fileCounter-1)*nnz + k) pA_xy        
+        u(:,:) = pA_xy(1,:,:) + 7.5
+        v(:,:) = pA_xy(2,:,:)
+        w(:,:,1) = pA_xy(3,:,:)
+        t(:,:) = pA_xy(4,:,:) + 300.0
+        e(:,:) = pA_xy(5,:,:)
+        read(fileXY,rec=(fileCounter-1)*nnz + k-1) pA_xy        
+        w(:,:,0) = pA_xy(3,:,:)
      end if
      write(*,'(e15.6,e15.6)') tLESnew, dtLES
      write(command,'(F07.1)') tLESnew-timeStart
-     call system("mkdir "//"sideOutlet/"//trim(adjustl(command)))
-     open(unit=11,file="sideOutlet/"//trim(adjustl(command))//"/U")
+     call system("mkdir "//"top/"//trim(adjustl(command)))
+     open(unit=11,file="top/"//trim(adjustl(command))//"/U")
      write(11,*)"/*--------------------------------*- C++ -*----------------------------------*\ "
      write(11,*)"| =========                 |                                                 | "
      write(11,*)"| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           | "
@@ -199,17 +201,16 @@ program writeOpenFOAMBCs
    
      write(11,*) "(0 0 0)"
 
-     write(11,*) (84)*wtExtentZ
+     write(11,*) (84)*(84)
      write(11,*)"("
-     j = 254+33 !Corresponds to turbine at x=1674m
-     yLocCur = (j-0.5)*dy
-     do k=1,wtExtentZ
+     do j=254-42+1,254+42
+        yLocCur = (j-1)*dy     
         do i=251-42+1, 251+42 !Corresponds to turbine at 1636-1762m
            xLocCur = (i-1)*dx
            call nearestPoints(dble(xLocCur*cos(yawAngle) - yLocCur*sin(yawAngle)), dble(xLocCur*sin(yawAngle) + yLocCur*cos(yawAngle)), ixl, ixu, iyl, iyu, wxlyl, wxuyl, wxlyu, wxuyu)
-           uRot = u(ixl,iyl,k)*wxlyl + u(ixu,iyl,k)*wxuyl + u(ixl,iyu,k)*wxlyu + u(ixu,iyu,k)*wxuyu
-           vRot = v(ixl,iyl,k)*wxlyl + v(ixu,iyl,k)*wxuyl + v(ixl,iyu,k)*wxlyu + v(ixu,iyu,k)*wxuyu
-           wRot = 0.5*(w(ixl,iyl,k)+w(ixl,iyl,k-1))*wxlyl + 0.5*(w(ixu,iyl,k)+w(ixu,iyl,k-1))*wxuyl + 0.5*(w(ixl,iyu,k)+w(ixl,iyu,k-1))*wxlyu + 0.5*(w(ixu,iyu,k)+w(ixu,iyu,k-1))*wxuyu
+           uRot = u(ixl,iyl)*wxlyl + u(ixu,iyl)*wxuyl + u(ixl,iyu)*wxlyu + u(ixu,iyu)*wxuyu
+           vRot = v(ixl,iyl)*wxlyl + v(ixu,iyl)*wxuyl + v(ixl,iyu)*wxlyu + v(ixu,iyu)*wxuyu
+           wRot = 0.5*(w(ixl,iyl,1)+w(ixl,iyl,0))*wxlyl + 0.5*(w(ixu,iyl,1)+w(ixu,iyl,0))*wxuyl + 0.5*(w(ixl,iyu,1)+w(ixl,iyu,0))*wxlyu + 0.5*(w(ixu,iyu,1)+w(ixu,iyu,0))*wxuyu
            if(meanOrTurb == 1) then
               write(11,*)"(", uRot*cos(yawAngle)+vRot*sin(yawAngle), " ", -uRot*sin(yawAngle)+vRot*cos(yawAngle), " ", wRot, ")"
            else
@@ -220,7 +221,7 @@ program writeOpenFOAMBCs
      write(11,*)")"
      close(11)
 
-     open(unit=11,file="sideOutlet/"//trim(adjustl(command))//"/T")
+     open(unit=11,file="top/"//trim(adjustl(command))//"/T")
      write(11,*)"/*--------------------------------*- C++ -*----------------------------------*\ "
      write(11,*)"| =========                 |                                                 | "
      write(11,*)"| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           | "
@@ -232,31 +233,30 @@ program writeOpenFOAMBCs
      write(11,*)"{"
      write(11,*)"    version     2.0;"
      write(11,*)"    format      ascii;"
-     write(11,*)"    class       scalarAverageField;"
+     write(11,*)"    class       scalarField;"
      write(11,*)"    object      values;"
      write(11,*)"}"
      write(11,*)"// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //"
      write(11,*)"0"
-     write(11,*) (84)*wtExtentZ
+     write(11,*) (84)*(84)
      write(11,*)"("
-     j = 254+33 !Corresponds to turbine at x=1674m
-     yLocCur = (j-0.5)*dy
-     do k=1,wtExtentZ
+     do j=254-42+1,254+42
+        yLocCur = (j-1)*dy     
         do i=251-42+1, 251+42 !Corresponds to turbine at 1636-1762m
            xLocCur = (i-1)*dx
            call nearestPoints(dble(xLocCur*cos(yawAngle) - yLocCur*sin(yawAngle)), dble(xLocCur*sin(yawAngle) + yLocCur*cos(yawAngle)), ixl, ixu, iyl, iyu, wxlyl, wxuyl, wxlyu, wxuyu)
-           tRot = t(ixl,iyl,k)*wxlyl + t(ixu,iyl,k)*wxuyl + t(ixl,iyu,k)*wxlyu + t(ixu,iyu,k)*wxuyu 
+           tRot = t(ixl,iyl)*wxlyl + t(ixu,iyl)*wxuyl + t(ixl,iyu)*wxlyu + t(ixu,iyu)*wxuyu 
            if (meanOrTurb == 1) then
               write(11,*) tRot
            else
-              write(11,*) sum(t(:,:,k))/real(nxy)
+              write(11,*) sum(t(:,:))/real(nxy)
            end if
         end do
      end do
      write(11,*)")"
      close(11)
 
-     open(unit=11,file="sideOutlet/"//trim(adjustl(command))//"/k")
+     open(unit=11,file="top/"//trim(adjustl(command))//"/k")
      write(11,*)"/*--------------------------------*- C++ -*----------------------------------*\ "
      write(11,*)"| =========                 |                                                 | "
      write(11,*)"| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           | "
@@ -275,16 +275,15 @@ program writeOpenFOAMBCs
      write(11,*)"0"
      write(11,*) 84*wtExtentZ
      write(11,*)"("
-     j = 254+33 !Corresponds to turbine at x=1674m
-     do k=1,wtExtentZ
+     do j=254-42+1,254+42
         do i=251-42+1, 251+42 !Corresponds to turbine at 1636-1762m
            xLocCur = (i-1)*dx
            call nearestPoints(dble(xLocCur*cos(yawAngle) - yLocCur*sin(yawAngle)), dble(xLocCur*sin(yawAngle) + yLocCur*cos(yawAngle)), ixl, ixu, iyl, iyu, wxlyl, wxuyl, wxlyu, wxuyu)
-           eRot = e(ixl,iyl,k)*wxlyl + e(ixu,iyl,k)*wxuyl + e(ixl,iyu,k)*wxlyu + e(ixu,iyu,k)*wxuyu 
+           eRot = e(ixl,iyl)*wxlyl + e(ixu,iyl)*wxuyl + e(ixl,iyu)*wxlyu + e(ixu,iyu)*wxuyu 
            if (meanOrTurb == 1) then
               write(11,*) eRot
            else
-              write(11,*) sum(e(:,:,k))/real(nxy)
+              write(11,*) sum(e(:,:))/real(nxy)
            end if
         end do
      end do

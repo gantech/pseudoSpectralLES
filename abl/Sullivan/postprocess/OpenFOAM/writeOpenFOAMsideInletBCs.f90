@@ -202,7 +202,7 @@ program writeOpenFOAMBCs
      write(11,*) (84)*wtExtentZ
      write(11,*)"("
      j = 254-42+1 !Corresponds to turbine at x=1674m
-     yLocCur = (j-0.5)*dy
+     yLocCur = (j-1.5)*dy
      do k=1,wtExtentZ
         do i=251-42+1, 251+42 !Corresponds to turbine at 1636-1762m
            xLocCur = (i-1)*dx
@@ -240,7 +240,7 @@ program writeOpenFOAMBCs
      write(11,*) (84)*wtExtentZ
      write(11,*)"("
      j = 254-42+1 !Corresponds to turbine at x=1674m
-     yLocCur = (j-0.5)*dy
+     yLocCur = (j-1.5)*dy
      do k=1,wtExtentZ
         do i=251-42+1, 251+42 !Corresponds to turbine at 1636-1762m
            xLocCur = (i-1)*dx
@@ -276,7 +276,7 @@ program writeOpenFOAMBCs
      write(11,*) 84*wtExtentZ
      write(11,*)"("
      j = 254-42+1 !Corresponds to turbine at x=1674m
-     yLocCur = (j-0.5)*dy
+     yLocCur = (j-1.5)*dy
      do k=1,wtExtentZ
         do i=251-42+1, 251+42 !Corresponds to turbine at 1636-1762m
            xLocCur = (i-1)*dx

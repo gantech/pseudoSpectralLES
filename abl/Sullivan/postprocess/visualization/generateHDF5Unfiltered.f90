@@ -37,7 +37,7 @@ program generateHDFfiles
   use HDF5
   implicit none
 
-  integer :: i,j,k,it,wtx,wty,fileCounter,iz !Counter variables
+  integer :: i,j,k,it,wtx,wty,fileCounter,iz,icounter !Counter variables
   
   real :: xl, yl         ! x, y domain sizes
   real :: dx, dy         ! x, y grid lengths
@@ -45,6 +45,7 @@ program generateHDFfiles
   real(kind=8), dimension(:), allocatable :: xArr, yArr !Array of x and y locations on the grid
   integer :: nvar=5 !The number of variables stored in a plane at every time step
   integer :: nt !Number of time steps
+  integer :: nskip !Processing only every 'nskip' time steps
   real :: t !Current time
   real :: dt  !Time step
   real(kind=4), dimension(:,:,:), allocatable :: pA_xy !Plane Arrays 
@@ -114,7 +115,8 @@ program generateHDFfiles
   fileUVarProfile = 84
   
 !  nt = 10
-  nt =  400
+  nt =  80
+  nskip = 25
 
   !
   ! Initialize HDF FORTRAN interface.
@@ -158,11 +160,11 @@ program generateHDFfiles
   read(fileDT,'(A1)') dtFileReadLine
   read(fileDT,'(A1)') dtFileReadLine
   do fileCounter=1,nt
-     read(fileDT,'(e15.6,e15.6)') tLESnew, dtLES
+     read(fileDT,'(e15.6,e15.6)') tLESnew, dtLES     
      write(*,*) 'Writing time ', fileCounter, ' ', tLESnew
      do zLevel = 1,nnz
 !        write(*,*) 'Reading record number ', (fileCounter-1)*nnz + zLevel
-        read(fileXY,rec=(fileCounter-1)*nnz + zLevel) pA_xy
+        read(fileXY,rec=(fileCounter-1)*nskip*nnz + zLevel) pA_xy !Reading every 'nskip' levels
         u = pA_xy(1,:,:) + 7.5
         v = pA_xy(2,:,:)
         w = pA_xy(3,:,:)
@@ -256,6 +258,10 @@ program generateHDFfiles
      ! Close the dataset.
      !
      CALL h5dclose_f(dset_id, iErr)
+
+     do icounter=1,nskip-1     
+        read(fileDT,'(e15.6,e15.6)') tLESnew, dtLES     
+     end do
 
 
   end do

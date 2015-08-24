@@ -134,11 +134,9 @@ program writeOpenFOAMInitialConditions
   read(fileDT,'(A1)') dtFileReadLine
   read(fileDT,'(A1)') dtFileReadLine
   read(fileDT,'(A1)') dtFileReadLine
-  do k=1,1678    !Start at 38774.3s
-     read(fileDT,'(e15.6,e15.6)') timeStart, dtLES
-  end do
+  read(fileDT,'(e15.6,e15.6)') timeStart, dtLES
   tLESnew = timeStart
-  do fileCounter=1678,nt+1678
+  do fileCounter=1,nt+1
      if(meanOrTurb == 1) then
         do k = 1, nnz
            read(fileXY,rec=(fileCounter-1)*nnz + k) pA_xy        

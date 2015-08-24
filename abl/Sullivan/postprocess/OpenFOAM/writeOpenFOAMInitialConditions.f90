@@ -42,8 +42,7 @@ program writeOpenFOAMInitialConditions
   integer :: nnx, nny, nnz      ! x, y grid dimensions
   integer :: nvar=5 !The number of variables stored in a plane at every time step
   integer :: nxy !nnx*nny
-  integer :: wtExtentX, wtExtentY, wtExtentZ !The streamwise, spanwise and vertical extent of the wind turbine in number of grid points.
-  integer :: wtx, wty !Number of wind turbines in each direction
+  integer :: wtExtentX, wtExtentY, wtExtentZ !The streamwise, spanwise and vertical extent of the domain
   integer :: nt !Number of time steps
   real :: dt  !Time step
   real(kind=4), dimension(:,:,:), allocatable :: pA_xy !Plane Arrays 
@@ -94,11 +93,9 @@ program writeOpenFOAMInitialConditions
   fileUMeanProfile = 83
   fileTMeanProfile = 84
 
-  wtExtentZ = 35
-  wtExtentY = 25
-  wtExtentX = 25
-  wtx = 7
-  wty = 7
+  wtExtentZ = 50
+  wtExtentY = 416
+  wtExtentX = 416
   
   nxy = nnx*nny
   nt =  1500
@@ -176,7 +173,7 @@ program writeOpenFOAMInitialConditions
      write(11,*)"dimensions      [0 1 -1 0 0 0 0]; "
      write(11,*)" "
      write(11,*)"internalField   nonuniform List<vector> "
-     write(11,*) 84*84*wtExtentZ
+     write(11,*) wtExtentX*wtExtentY*wtExtentZ
      write(11,*)"("
 
      open(unit=12,file="initialConditions/"//trim(adjustl(command))//"/tke")
@@ -200,14 +197,14 @@ program writeOpenFOAMInitialConditions
      write(12,*)"dimensions      [0 2 -2 0 0 0 0]; "
      write(12,*)" "
      write(12,*)"internalField   nonuniform List<scalar> "
-     write(12,*) 84*84*wtExtentZ
+     write(12,*) wtExtentX*wtExtentY*wtExtentZ
      write(12,*)"("
 
 
      do k=1,wtExtentZ
-        do j=254-42+1, 254+42 
+        do j=1,wtExtentY
            yLocCur = (j-1)*dy
-           do i=251-42+1,251+42
+           do i=1,wtExtentX
               xLocCur = (i-1)*dx              
               call nearestPoints(dble(xLocCur*cos(yawAngle) - yLocCur*sin(yawAngle)), dble(xLocCur*sin(yawAngle) + yLocCur*cos(yawAngle)), ixl, ixu, iyl, iyu, wxlyl, wxuyl, wxlyu, wxuyu)
               uRot = u(ixl,iyl,k)*wxlyl + u(ixu,iyl,k)*wxuyl + u(ixl,iyu,k)*wxlyu + u(ixu,iyu,k)*wxuyu
@@ -316,12 +313,12 @@ program writeOpenFOAMInitialConditions
      write(11,*)"dimensions      [0 0 0 1 0 0 0]; "
      write(11,*)" "
      write(11,*)"internalField   nonuniform List<scalar> "
-     write(11,*) 84*84*wtExtentZ
+     write(11,*) wtExtentX*wtExtentY*wtExtentZ
      write(11,*)"("
      do k=1,wtExtentZ
-        do j=254-42+1, 254+42 
+        do j=1,wtExtentY
            yLocCur = (j-1)*dy
-           do i=251-42+1,251+42
+           do i=1,wtExtentX
               xLocCur = (i-1)*dx              
               call nearestPoints(dble(xLocCur*cos(yawAngle) - yLocCur*sin(yawAngle)), dble(xLocCur*sin(yawAngle) + yLocCur*cos(yawAngle)), ixl, ixu, iyl, iyu, wxlyl, wxuyl, wxlyu, wxuyu)
               tRot = t(ixl,iyl,k)*wxlyl + t(ixu,iyl,k)*wxuyl + t(ixl,iyu,k)*wxlyu + t(ixu,iyu,k)*wxuyu 
@@ -365,69 +362,6 @@ program writeOpenFOAMInitialConditions
      write(11,*)"}"
      close(11)
 
-     open(unit=11,file="initialConditions/"//trim(adjustl(command))//"/Tmean")
-     write(11,*)"/*--------------------------------*- C++ -*----------------------------------*\ "
-     write(11,*)"| =========                 |                                                 | "
-     write(11,*)"| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           | "
-     write(11,*)"|  \\    /   O peration     | Version:  1.6                                   | "
-     write(11,*)"|   \\  /    A nd           | Web:      http://www.OpenFOAM.org               | "
-     write(11,*)"|    \\/     M anipulation  |                                                 | "
-     write(11,*)"\*---------------------------------------------------------------------------*/ "
-     write(11,*)"FoamFile"
-     write(11,*)"{"
-     write(11,*)"    version     2.0;"
-     write(11,*)"    format      ascii;"
-     write(11,*)"    class       volScalarField;"
-     write(11,*)"    location    ",tLESnew-timeStart,";"
-     write(11,*)"    object      Tmean;"
-     write(11,*)"}"
-     write(11,*)"// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * // "
-     write(11,*)" "
-     write(11,*)"dimensions      [0 0 0 1 0 0 0]; "
-     write(11,*)" "
-     write(11,*)"internalField   nonuniform List<scalar> "
-     write(11,*) 84*84*wtExtentZ
-     write(11,*)"("
-     do k=1,wtExtentZ
-        do j=254-42+1, 254+42 
-           yLocCur = (j-1)*dy
-           do i=251-42+1,251+42
-              xLocCur = (i-1)*dx              
-              write(11,*) tmeanProfile(k)
-           end do
-        end do
-     end do
-     write(11,*)");"
-     write(11,*)"boundaryField "
-     write(11,*)"{ "
-     write(11,*)"bottomWall"
-     write(11,*)"{"
-     write(11,*)"type            fixedValue;"
-     write(11,*)"value           uniform 303.79;"
-     write(11,*)"}"
-     write(11,*)"top"
-     write(11,*)"{"
-     write(11,*)"type            zeroGradient;"
-     write(11,*)"}"
-     write(11,*)"inlet "
-     write(11,*)"{"
-     write(11,*)"type              zeroGradient;"
-     write(11,*)"}"
-     write(11,*)"outlet"
-     write(11,*)"{"
-     write(11,*)"type              zeroGradient;"
-     write(11,*)"}"
-     write(11,*)"sideInlet"
-     write(11,*)"{"
-     write(11,*)"type              zeroGradient;"
-     write(11,*)"}"
-     write(11,*)"sideOutlet"
-     write(11,*)"{"
-     write(11,*)"type              zeroGradient;"
-     write(11,*)"}"
-     write(11,*)"}"
-     close(11)
-
      open(unit=11,file="initialConditions/"//trim(adjustl(command))//"/k")
      write(11,*)"/*--------------------------------*- C++ -*----------------------------------*\ "
      write(11,*)"| =========                 |                                                 | "
@@ -449,12 +383,12 @@ program writeOpenFOAMInitialConditions
      write(11,*)"dimensions      [0 2 -2 0 0 0 0]; "
      write(11,*)" "
      write(11,*)"internalField   nonuniform List<scalar> "
-     write(11,*) 84*84*wtExtentZ
+     write(11,*) wtExtentX*wtExtentY*wtExtentZ
      write(11,*)"("
      do k=1,wtExtentZ
-        do j=254-42+1, 254+42 
+        do j=1,wtExtentY
            yLocCur = (j-1)*dy
-           do i=251-42+1,251+42 
+           do i=1,wtExtentX
               xLocCur = (i-1)*dx              
               call nearestPoints(dble(xLocCur*cos(yawAngle) - yLocCur*sin(yawAngle)), dble(xLocCur*sin(yawAngle) + yLocCur*cos(yawAngle)), ixl, ixu, iyl, iyu, wxlyl, wxuyl, wxlyu, wxuyu)
               eRot = e(ixl,iyl,k)*wxlyl + e(ixu,iyl,k)*wxuyl + e(ixl,iyu,k)*wxlyu + e(ixu,iyu,k)*wxuyu 

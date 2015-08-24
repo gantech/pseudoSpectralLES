@@ -42,8 +42,7 @@ program writeOpenFOAMBCs
   integer :: nnx, nny, nnz      ! x, y grid dimensions
   integer :: nvar=5 !The number of variables stored in a plane at every time step
   integer :: nxy !nnx*nny
-  integer :: wtExtentY, wtExtentZ !The spanwise and vertical extent of the wind turbine in number of grid points.
-  integer :: wtx, wty !Number of wind turbines in each direction
+  integer :: wtExtentY, wtExtentZ !The spanwise and vertical extent of the domain
   integer :: nt !Number of time steps
   real :: dt  !Time step
   real(kind=4), dimension(:,:,:), allocatable :: pA_xy !Plane Arrays 
@@ -93,10 +92,8 @@ program writeOpenFOAMBCs
   fileUMeanProfile = 83
   fileTMeanProfile = 84
 
-  wtExtentZ = 35
-  wtExtentY = 25
-  wtx = 7
-  wty = 7
+  wtExtentZ = 50
+  wtExtentY = 416
   
   nxy = nnx*nny
   nt =  1500
@@ -127,8 +124,8 @@ program writeOpenFOAMBCs
   end do
   close(fileTMeanProfile)
 
-  !Writing list of points on inlet face
-  open(unit=11,file="inlet/points")
+  !Writing list of points on west face
+  open(unit=11,file="west/points")
   write(11,*)"/*--------------------------------*- C++ -*----------------------------------*\ "
   write(11,*)"| =========                 |                                                 | "
   write(11,*)"| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           | "
@@ -140,13 +137,13 @@ program writeOpenFOAMBCs
   write(11,*)"{"
   write(11,*)"    version     2.0;"
   write(11,*)"    format      ascii;"
-  write(11,*)"    class       vectorAverageField;"
+  write(11,*)"    class       vectorField;"
   write(11,*)"    object      points;"
   write(11,*)"}"
   write(11,*)"// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //"
   write(11,*)"("
   do k=1,wtExtentZ
-     do j= 1, 84
+     do j= 1, wtExtentY
         write(11,*)"(", 0, " ", (j-1)*dy, " ", k*dz - 0.5*dz,")"
      end do
   end do
@@ -162,11 +159,9 @@ program writeOpenFOAMBCs
   read(fileDT,'(A1)') dtFileReadLine
   read(fileDT,'(A1)') dtFileReadLine
   read(fileDT,'(A1)') dtFileReadLine
-  do k=1,1678    !Start at 38774.3s
-     read(fileDT,'(e15.6,e15.6)') timeStart, dtLES
-  end do
+  read(fileDT,'(e15.6,e15.6)') timeStart, dtLES
   tLESnew = timeStart
-  do fileCounter=1678,nt+1678
+  do fileCounter=1,nt+1
      if(meanOrTurb == 1) then
         do k = 1, nnz
            read(fileXY,rec=(fileCounter-1)*nnz + k) pA_xy        
@@ -179,8 +174,8 @@ program writeOpenFOAMBCs
      end if
      write(*,'(e15.6,e15.6)') tLESnew, dtLES
      write(command,'(F07.1)') tLESnew-timeStart
-     call system("mkdir "//"inlet/"//trim(adjustl(command)))
-     open(unit=11,file="inlet/"//trim(adjustl(command))//"/U")
+     call system("mkdir "//"west/"//trim(adjustl(command)))
+     open(unit=11,file="west/"//trim(adjustl(command))//"/U")
      write(11,*)"/*--------------------------------*- C++ -*----------------------------------*\ "
      write(11,*)"| =========                 |                                                 | "
      write(11,*)"| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           | "
@@ -192,19 +187,19 @@ program writeOpenFOAMBCs
      write(11,*)"{"
      write(11,*)"    version     2.0;"
      write(11,*)"    format      ascii;"
-     write(11,*)"    class       vectorField;"
+     write(11,*)"    class       vectorAverageField;"
      write(11,*)"    object      values;"
      write(11,*)"}"
      write(11,*)"// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * // "
    
      write(11,*) "(0 0 0)"
 
-     write(11,*) (84)*wtExtentZ
+     write(11,*) (wtExtentY)*wtExtentZ
      write(11,*)"("
-     i = 251-42 !Corresponds to turbine at x=1674m
+     i = 0
      xLocCur = (i-0.5)*dx
      do k=1,wtExtentZ
-        do j=254-42+1, 254+42 !Corresponds to turbine at 1636-1762m
+        do j = 1, wtExtentY
            yLocCur = (j-1)*dy
            call nearestPoints(dble(xLocCur*cos(yawAngle) - yLocCur*sin(yawAngle)), dble(xLocCur*sin(yawAngle) + yLocCur*cos(yawAngle)), ixl, ixu, iyl, iyu, wxlyl, wxuyl, wxlyu, wxuyu)
            uRot = u(ixl,iyl,k)*wxlyl + u(ixu,iyl,k)*wxuyl + u(ixl,iyu,k)*wxlyu + u(ixu,iyu,k)*wxuyu
@@ -220,7 +215,7 @@ program writeOpenFOAMBCs
      write(11,*)")"
      close(11)
 
-     open(unit=11,file="inlet/"//trim(adjustl(command))//"/T")
+     open(unit=11,file="west/"//trim(adjustl(command))//"/T")
      write(11,*)"/*--------------------------------*- C++ -*----------------------------------*\ "
      write(11,*)"| =========                 |                                                 | "
      write(11,*)"| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           | "
@@ -237,12 +232,12 @@ program writeOpenFOAMBCs
      write(11,*)"}"
      write(11,*)"// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //"
      write(11,*)"0"
-     write(11,*) (84)*wtExtentZ
+     write(11,*) (wtExtentY)*wtExtentZ
      write(11,*)"("
-     i = 251-42 !Corresponds to turbine at x=1674m
+     i = 0
      xLocCur = (i-0.5)*dx
      do k=1,wtExtentZ
-        do j=254-42+1, 254+42 !Corresponds to turbine at 1636-1762m
+        do j = 1, wtExtentY
            yLocCur = (j-1)*dy
            call nearestPoints(dble(xLocCur*cos(yawAngle) - yLocCur*sin(yawAngle)), dble(xLocCur*sin(yawAngle) + yLocCur*cos(yawAngle)), ixl, ixu, iyl, iyu, wxlyl, wxuyl, wxlyu, wxuyu)
            tRot = t(ixl,iyl,k)*wxlyl + t(ixu,iyl,k)*wxuyl + t(ixl,iyu,k)*wxlyu + t(ixu,iyu,k)*wxuyu 
@@ -256,7 +251,7 @@ program writeOpenFOAMBCs
      write(11,*)")"
      close(11)
 
-     open(unit=11,file="inlet/"//trim(adjustl(command))//"/k")
+     open(unit=11,file="west/"//trim(adjustl(command))//"/k")
      write(11,*)"/*--------------------------------*- C++ -*----------------------------------*\ "
      write(11,*)"| =========                 |                                                 | "
      write(11,*)"| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           | "
@@ -273,11 +268,11 @@ program writeOpenFOAMBCs
      write(11,*)"}"
      write(11,*)"// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * // "
      write(11,*)"0"
-     write(11,*) 84*wtExtentZ
+     write(11,*) wtExtentY*wtExtentZ
      write(11,*)"("
-     i = 251-42 !Corresponds to turbine at x=1674m
+     i = 0
      do k=1,wtExtentZ
-        do j=254-42+1, 254+42 !Corresponds to turbine at 1636-1762m
+        do j = 1, wtExtentY
            yLocCur = (j-1)*dy
            call nearestPoints(dble(xLocCur*cos(yawAngle) - yLocCur*sin(yawAngle)), dble(xLocCur*sin(yawAngle) + yLocCur*cos(yawAngle)), ixl, ixu, iyl, iyu, wxlyl, wxuyl, wxlyu, wxuyu)
            eRot = e(ixl,iyl,k)*wxlyl + e(ixu,iyl,k)*wxuyl + e(ixl,iyu,k)*wxlyu + e(ixu,iyu,k)*wxuyu 

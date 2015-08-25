@@ -127,7 +127,7 @@ program writeOpenFOAMInitialConditions
   close(fileTMeanProfile)
 
   if(meanOrTurb == 1) then
-     open(unit=fileXY, file="../viz.abl.094999_102000.xy.data", form="unformatted", access="direct", recl=nvar*nnx*nny*sizeOfReal)
+     open(unit=fileXY, file="../data/viz.abl.094999_102000.xy.data", form="unformatted", access="direct", recl=nvar*nnx*nny*sizeOfReal)
   end if
   open(fileDT,file="dt",form="formatted")
   read(fileDT,'(A1)') dtFileReadLine
